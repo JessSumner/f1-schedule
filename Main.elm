@@ -1,8 +1,9 @@
 module Schedule exposing (..)
 
-import Html exposing (text)
+import Html exposing (..)
 import Http
-import Json.Decode exposing (..)
+import Json.Decode as JD exposing (..)
+import Html.Events exposing (onClick)
 
 main : Program Never Model Msg
 main =
@@ -13,18 +14,26 @@ main =
         , subscriptions = always Sub.none
         }
 type alias Model =
-    { schedule : String
+    { schedule : List Race
+    , test : List String
+    }
+
+type alias Race =
+    { name : String
+    , date : String
     }
 
 
 type Msg
     = GetF1Schedule
-    | GotF1Schedule ( Result Http.Error String )
+    | GotF1Schedule ( Result Http.Error (List Race ))
     | NoOp
 
 init : ( Model, Cmd Msg )
 init =
-    update GetF1Schedule { schedule = "none" }
+    ({ schedule = []
+    , test = ["Race 1", "Race 2", "Race 3", "Race 4"] }
+    , Cmd.none)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -52,19 +61,60 @@ api : String
 api = 
     "http://ergast.com/api/f1/2017.json"
 
-getF1Schedule : Http.Request String
+getF1Schedule : Http.Request (List Race)
 getF1Schedule =
     Http.get api decodeResult
 
 
-decodeResult : Decoder String
+decodeResult : Decoder (List Race)
 decodeResult =
-    at [ "RaceTable", "Races", "raceName" ] string
+    at ["MRData", "RaceTable", "Races"] decodeListOfRaces
+
+decodeListOfRaces : Decoder (List Race )
+decodeListOfRaces =
+    list decodeOneRace
+
+nameToRace : String -> String -> Race
+nameToRace name date =
+  { name = name
+  , date = date
+  }
+
+decodeOneRace : Decoder Race
+decodeOneRace =
+  JD.map2 nameToRace decodeOneRaceName decodeOneRaceDate
+
+decodeOneRaceName : Decoder String
+decodeOneRaceName =
+    at ["raceName"] string
+
+decodeOneRaceDate : Decoder String
+decodeOneRaceDate =
+    at ["date"] string
+
+generateList : List Race -> List (Html Msg)
+generateList races =
+    List.map generateLi races
+
+
+generateLi : Race -> Html a
+generateLi race =
+    li [] [text (race.name ++ " " ++ race.date)]
+
 
 
 view : Model -> Html.Html Msg
 view model =
-    Html.text "Here is your schedule"
+    div
+      []
+      [
+        button 
+          [ onClick GetF1Schedule ]
+          [text "Get Schedule"]
+        ,ul 
+          []
+          (generateList model.schedule)
+      ]
 
 {--
 Example of the json data
