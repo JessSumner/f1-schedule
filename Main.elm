@@ -27,7 +27,7 @@ type alias Race =
 
 
 type Msg
-    = GetF1Schedule String
+    = GetF1Schedule
     | GotF1Schedule ( Result Http.Error (List Race ))
     | ChangeYear String
     | NoOp
@@ -46,8 +46,8 @@ update msg model =
         NoOp ->
             ( model, Cmd.none )
 
-        GetF1Schedule year ->
-            ( model, Http.send GotF1Schedule ( getF1Schedule year ) )
+        GetF1Schedule ->
+            ( model, Http.send GotF1Schedule ( getF1Schedule model.year ) )
 
         GotF1Schedule result ->
             case result of
@@ -129,11 +129,8 @@ view model =
               [placeholder "YYYY", onInput ChangeYear ]
               []
           ]
-       , div
-          []
-          [ text <| composeApiString model.year ]
        , button
-          [ onClick <| GetF1Schedule model.year]
+          [ onClick <| GetF1Schedule ]
           [text "Get Schedule"]
         ,ul 
           []
