@@ -3,7 +3,8 @@ module Schedule exposing (..)
 import Html exposing (..)
 import Http
 import Json.Decode as JD exposing (..)
-import Html.Events exposing (onClick)
+import Html.Events exposing (onClick, onInput)
+import Html.Attributes exposing (placeholder)
 
 main : Program Never Model Msg
 main =
@@ -15,6 +16,7 @@ main =
         }
 type alias Model =
     { schedule : List Race
+    , year : String
     , test : List String
     }
 
@@ -25,13 +27,15 @@ type alias Race =
 
 
 type Msg
-    = GetF1Schedule
+    = GetF1Schedule String
     | GotF1Schedule ( Result Http.Error (List Race ))
+    | ChangeYear String
     | NoOp
 
 init : ( Model, Cmd Msg )
 init =
     ({ schedule = []
+    , year = "2018"
     , test = ["Race 1", "Race 2", "Race 3", "Race 4"] }
     , Cmd.none)
 
@@ -42,8 +46,8 @@ update msg model =
         NoOp ->
             ( model, Cmd.none )
 
-        GetF1Schedule ->
-            ( model, Http.send GotF1Schedule getF1Schedule )
+        GetF1Schedule year ->
+            ( model, Http.send GotF1Schedule ( getF1Schedule year ) )
 
         GotF1Schedule result ->
             case result of
@@ -57,13 +61,23 @@ update msg model =
                 Ok schedule ->
                     ( { model | schedule = schedule }, Cmd.none)
 
+        ChangeYear newYear ->
+                    ({ model | year = newYear }, Cmd.none)
+
 api : String
 api = 
     "http://ergast.com/api/f1/2017.json"
 
-getF1Schedule : Http.Request (List Race)
-getF1Schedule =
-    Http.get api decodeResult
+
+composeApiString : String -> String
+composeApiString year =
+    "http://ergast.com/api/f1/" ++ year ++ ".json"
+
+
+getF1Schedule : String -> Http.Request (List Race)
+getF1Schedule year =
+    Http.get (composeApiString year) decodeResult
+    -- Http.get api decodeResult
 
 
 decodeResult : Decoder (List Race)
@@ -108,8 +122,18 @@ view model =
     div
       []
       [
-        button 
-          [ onClick GetF1Schedule ]
+        label
+          []
+          [ text "Year to retrieve:"
+          , input
+              [placeholder "YYYY", onInput ChangeYear ]
+              []
+          ]
+       , div
+          []
+          [ text <| composeApiString model.year ]
+       , button
+          [ onClick <| GetF1Schedule model.year]
           [text "Get Schedule"]
         ,ul 
           []
