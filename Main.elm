@@ -5,6 +5,8 @@ import Http
 import Json.Decode as JD exposing (..)
 import Html.Events exposing (onClick, onInput)
 import Html.Attributes exposing (placeholder)
+import Date exposing (..)
+import Task exposing (perform)
 
 main : Program Never Model Msg
 main =
@@ -14,10 +16,12 @@ main =
         , view = view
         , subscriptions = always Sub.none
         }
+
 type alias Model =
     { schedule : List Race
     , year : String
     , test : List String
+    , currentDate : Maybe Date
     }
 
 type alias Race =
@@ -30,14 +34,21 @@ type Msg
     = GetF1Schedule
     | GotF1Schedule ( Result Http.Error (List Race ))
     | ChangeYear String
+    | GetCurrentDate Date
     | NoOp
 
 init : ( Model, Cmd Msg )
 init =
     ({ schedule = []
     , year = "2018"
-    , test = ["Race 1", "Race 2", "Race 3", "Race 4"] }
-    , Cmd.none)
+    , test = ["Race 1", "Race 2", "Race 3", "Race 4"] 
+    , currentDate = Nothing}
+    , getCurrentDate )
+
+
+getCurrentDate : Cmd Msg
+getCurrentDate =
+    Task.perform GetCurrentDate Date.now
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -64,8 +75,10 @@ update msg model =
         ChangeYear newYear ->
                     ({ model | year = newYear }, Cmd.none)
 
+        GetCurrentDate date -> ({ model | currentDate = Just date }, Cmd.none)
+
 api : String
-api = 
+api =
     "http://ergast.com/api/f1/2017.json"
 
 
@@ -122,7 +135,10 @@ view model =
     div
       []
       [
-        label
+        div
+          []
+          [ text <| "Today's date is: " ++ ( toString model.currentDate) ]
+       , label
           []
           [ text "Year to retrieve:"
           , input
