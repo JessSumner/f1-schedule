@@ -119,6 +119,15 @@ decodeOneRaceDate : Decoder String
 decodeOneRaceDate =
     at ["date"] string
 
+convertRaceDate : String -> Result String Date
+convertRaceDate dateString = 
+    let
+       rDate = fromString dateString
+    in case rDate of
+            Err s -> Debug.log ( "Error converting the date from a string " ++ s) rDate
+
+            _ -> rDate
+
 generateList : List Race -> List (Html Msg)
 generateList races =
     List.map generateLi races
